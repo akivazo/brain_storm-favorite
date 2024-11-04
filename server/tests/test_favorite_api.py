@@ -52,3 +52,22 @@ def test_remove_favorite(client: FlaskClient):
     response = client.get('/favorite/JohnDoe')
     assert response.status_code == 200
     assert response.get_json() == {"ideas": ["idea_id2"]}
+
+def test_remove_all_favorites(client: FlaskClient):
+    # Add an idea first, then remove it
+    client.post('/favorite/JohnDoe/idea_id1')
+    client.post('/favorite/JohnDoe/idea_id2')
+    response = client.delete('/favorite/JohnDoe/idea_id1')
+    
+    assert response.status_code == 200
+    assert response.get_json() == "Idea removed succefully"
+
+    response = client.delete('/favorite/JohnDoe/idea_id2')
+    
+    assert response.status_code == 200
+    assert response.get_json() == "Idea removed succefully"
+    
+    # Verify that the idea was removed
+    response = client.get('/favorite/JohnDoe')
+    assert response.status_code == 200
+    assert response.get_json() == {"ideas": []}
