@@ -23,24 +23,39 @@ def add_favorite(user_name, idea_id):
         {"$addToSet": {"Ideas": idea_id}},  # $addToSet ensures no duplicates
         upsert=True  # Create the document if it doesn't exist
     )
-    return jsonify("Idea added succefully"), 200
+    collection.update_one(
+        {"IdeaId": idea_id}, 
+        {"$inc": {"Count": 1}}, 
+        upsert=True)
+    return jsonify("Idea marked succefully"), 200
 
 @server.route("/favorite/<user_name>/<idea_id>", methods=["DELETE"])
 def remove_favorite(user_name, idea_id):
+
     collection.update_one(
         {"Name": user_name},
-        {"$pull": {"Ideas": idea_id}},  # $addToSet ensures no duplicates
-        upsert=True  # Create the document if it doesn't exist
+        {"$pull": {"Ideas": idea_id}},   
     )
-    return jsonify("Idea removed succefully"), 200
+    collection.update_one(
+        {"IdeaId": idea_id}, 
+        {"$inc": {"Count": -1}}, )
+    
+    return jsonify("Idea unmarked succefully"), 200
 
 
-@server.route("/favorite/<user_name>", methods=["GET"])
+@server.route("/user_favorite/<user_name>", methods=["GET"])
 def get_user_favorites(user_name):
     ideas = collection.find_one({"Name": user_name}, {"_id": 0, "Ideas": 1})
     if ideas:
         return jsonify({"ideas": list(ideas["Ideas"])}), 200
     return jsonify({"ideas": []}), 200
+
+@server.route("/idea_count/<idea_id>", methods=["GET"])
+def get_idea_favorites_count(idea_id):
+    result = collection.find_one({"IdeaId": idea_id})
+    if result:
+        return jsonify({"count": result["Count"]}), 200
+    return jsonify({"count": 0}), 200
     
 if __name__ == "__main__":
     import os, dotenv
