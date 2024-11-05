@@ -24,20 +24,46 @@ def test_root_endpoint(client: FlaskClient):
 def test_add_favorite(client: FlaskClient):
     response = client.post('/favorite/JohnDoe/idea_id1')
     assert response.status_code == 200
-    assert response.get_json() == "Idea added succefully"
+    assert response.get_json() == "Idea marked succefully"
 
 def test_empty_list(client: FlaskClient):
-    response = client.get('/favorite/JohnDoe')
+    response = client.get('/user_favorite/JohnDoe')
     assert response.status_code == 200
     assert response.get_json() == {"ideas": []}
 
-def test_get_user_favorites(client: FlaskClient):
+    response = client.get("/idea_count/NonExistIdea")
+
+    assert response.status_code == 200
+    assert response.get_json() == {"count": 0}
+
+
+def test_get_favorites(client: FlaskClient):
     # Add an idea first to retrieve it later
     client.post('/favorite/JohnDoe/idea_id1')
     client.post('/favorite/JohnDoe/idea_id2')
-    response = client.get('/favorite/JohnDoe')
+    client.post('/favorite/MarkDean/idea_id2')
+
+    response = client.get('/user_favorite/JohnDoe')
     assert response.status_code == 200
     assert response.get_json() == {"ideas": ["idea_id1", "idea_id2"]}
+
+    response = client.get("/idea_count/idea_id2")
+    assert response.status_code == 200
+
+    assert response.get_json()["count"] == 2
+
+    response = client.get("/idea_count/idea_id1")
+    assert response.status_code == 200
+
+    assert response.get_json()["count"] == 1
+
+
+
+def test_remove_favorite_for_non_exist_user(client: FlaskClient):
+    response = client.delete('/favorite/JohnDoe/idea_id1')
+
+    assert response.status_code == 200
+    assert response.get_json() == "Idea unmarked succefully"
 
 def test_remove_favorite(client: FlaskClient):
     # Add an idea first, then remove it
@@ -46,12 +72,17 @@ def test_remove_favorite(client: FlaskClient):
     response = client.delete('/favorite/JohnDoe/idea_id1')
     
     assert response.status_code == 200
-    assert response.get_json() == "Idea removed succefully"
+    assert response.get_json() == "Idea unmarked succefully"
     
     # Verify that the idea was removed
-    response = client.get('/favorite/JohnDoe')
+    response = client.get('/user_favorite/JohnDoe')
     assert response.status_code == 200
     assert response.get_json() == {"ideas": ["idea_id2"]}
+
+    response = client.get("/idea_count/idea_id1")
+
+    assert response.status_code == 200
+    assert response.get_json()["count"] == 0
 
 def test_remove_all_favorites(client: FlaskClient):
     # Add an idea first, then remove it
@@ -60,14 +91,24 @@ def test_remove_all_favorites(client: FlaskClient):
     response = client.delete('/favorite/JohnDoe/idea_id1')
     
     assert response.status_code == 200
-    assert response.get_json() == "Idea removed succefully"
+    assert response.get_json() == "Idea unmarked succefully"
 
     response = client.delete('/favorite/JohnDoe/idea_id2')
     
     assert response.status_code == 200
-    assert response.get_json() == "Idea removed succefully"
+    assert response.get_json() == "Idea unmarked succefully"
     
     # Verify that the idea was removed
-    response = client.get('/favorite/JohnDoe')
+    response = client.get('/user_favorite/JohnDoe')
     assert response.status_code == 200
     assert response.get_json() == {"ideas": []}
+
+    response = client.get("/idea_count/idea_id1")
+
+    assert response.status_code == 200
+    assert response.get_json()["count"] == 0
+
+    response = client.get("/idea_count/idea_id2")
+
+    assert response.status_code == 200
+    assert response.get_json()["count"] == 0
